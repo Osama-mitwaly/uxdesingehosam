@@ -10,83 +10,45 @@
 </head>
 <body class="add-product-page">
     <header class="top-bar">
-        <button class="btn-back" onclick="window.location.href='merchant-store-mgmt.html'">
-            <i class="bi bi-arrow-right"></i> رجوع
-        </button>
-        <h1>إضافة منتج جديد</h1>
-        <div></div>
+        <button class="btn-back" onclick="window.location.href='merchant-store-mgmt.html'"><i class="bi bi-arrow-right"></i> رجوع</button>
+        <h1>إضافة منتج جديد</h1><div></div>
     </header>
-
     <main class="container">
-        <!-- معاينة البطاقة -->
         <section class="preview-section">
-            <div class="preview-card" id="previewCard">
-                <div class="preview-image-wrapper">
-                    <img id="previewImg" src="https://placehold.co/400x400/e2e8f0/94a3b8?text=صورة+المنتج" alt="معاينة المنتج">
-                </div>
-                <div class="preview-info">
-                    <h3 id="previewName">اسم المنتج</h3>
-                    <p id="previewPrice">0.00 ر.س</p>
-                </div>
+            <div class="preview-card" id="previewCard" style="background:#fff;">
+                <div class="preview-image-wrapper"><img id="previewImg" src="https://placehold.co/400x400/e2e8f0/94a3b8?text=صورة+المنتج"></div>
+                <div class="preview-info"><h3 id="previewName">اسم المنتج</h3><p id="previewPrice">0.00 ر.س</p></div>
             </div>
         </section>
-
-        <!-- نموذج الإدخال -->
         <form id="productForm" class="product-form">
-            <div class="form-group">
-                <label for="productImage">صورة المنتج</label>
-                <div class="file-upload-wrapper">
-                    <input type="file" id="productImage" accept="image/*">
-                    <label for="productImage" class="upload-label"><i class="bi bi-cloud-arrow-up"></i> اختيار صورة</label>
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label for="productName">اسم المنتج</label>
-                <input type="text" id="productName" placeholder="مثال: سماعات لاسلكية" required>
-            </div>
-
-            <div class="form-group">
-                <label for="productPrice">السعر (ر.س)</label>
-                <input type="number" id="productPrice" placeholder="0.00" step="0.01" min="0" required>
-            </div>
-
+            <div class="form-group"><label>صورة المنتج</label><div class="file-upload-wrapper"><input type="file" id="productImage" accept="image/*"><label for="productImage" class="upload-label"><i class="bi bi-cloud-arrow-up"></i> اختيار صورة</label></div></div>
+            <div class="form-group"><label>اسم المنتج</label><input type="text" id="productName" placeholder="مثال: سماعات لاسلكية" required></div>
+            <div class="form-group"><label>السعر (ر.س)</label><input type="number" id="productPrice" placeholder="0.00" step="0.01" min="0" required></div>
             <div class="form-row">
-                <div class="form-group half">
-                    <label for="productColor">لون البطاقة</label>
-                    <input type="color" id="productColor" value="#ffffff">
-                </div>
-                <div class="form-group half">
-                    <label for="productCategory">التصنيف</label>
-                    <select id="productCategory">
-                        <option value="">اختر التصنيف</option>
-                        <option value="electronics">إلكترونيات</option>
-                        <option value="clothing">ملابس</option>
-                        <option value="home">أدوات منزلية</option>
-                        <option value="personal">عناية شخصية</option>
-                        <option value="food">مواد غذائية</option>
-                        <option value="other">أخرى</option>
-                    </select>
-                </div>
+                <div class="form-group half"><label>لون البطاقة</label><div id="colorPickerWrapper" class="color-picker-modern"></div></div>
+                <div class="form-group half"><label>التصنيف</label><select id="productCategory"><option value="">اختر التصنيف</option><option value="electronics">إلكترونيات</option><option value="clothing">ملابس</option><option value="home">أدوات منزلية</option><option value="personal">عناية شخصية</option><option value="food">مواد غذائية</option><option value="other">أخرى</option></select></div>
             </div>
-
-            <div class="form-group">
-                <label for="productStock">الكمية المتاحة في المخزن</label>
-                <input type="number" id="productStock" placeholder="مثال: 50" min="0" required>
+            <div class="form-row">
+                <div class="form-group half"><label>الكمية المتاحة</label><input type="number" id="productStock" placeholder="50" min="0" required></div>
+                <div class="form-group half"><label>الحد الأدنى للمخزون</label><input type="number" id="productMin" placeholder="10" min="0" required></div>
             </div>
-
-            <button type="submit" class="btn-primary full-width">
-                <i class="bi bi-plus-lg"></i> أضف المنتج
-            </button>
+            <button type="submit" class="btn-primary full-width"><i class="bi bi-plus-lg"></i> أضف المنتج</button>
         </form>
     </main>
-
-    <!-- إشعار النجاح -->
-    <div id="toast" class="toast hidden">
-        <i class="bi bi-check-circle-fill"></i>
-        <span>تم إضافة المنتج بنجاح!</span>
-    </div>
-
+    <div id="toast" class="toast hidden"><i class="bi bi-check-circle-fill"></i><span>تم إضافة المنتج بنجاح!</span></div>
     <script src="app.js"></script>
+    <script>
+    // إضافة منطق المعاينة للصفحة الحالية فقط
+    document.addEventListener('DOMContentLoaded', () => {
+        const form = document.getElementById('productForm');
+        if(!form) return;
+        const imgInput = document.getElementById('productImage'), nameInput = document.getElementById('productName'), priceInput = document.getElementById('productPrice');
+        const previewImg = document.getElementById('previewImg'), previewName = document.getElementById('previewName'), previewPrice = document.getElementById('previewPrice'), previewCard = document.getElementById('previewCard');
+        imgInput.onchange = e => previewImg.src = e.target.files[0] ? URL.createObjectURL(e.target.files[0]) : "https://placehold.co/400x400/e2e8f0/94a3b8?text=صورة+المنتج";
+        nameInput.oninput = () => previewName.textContent = nameInput.value || 'اسم المنتج';
+        priceInput.oninput = () => previewPrice.textContent = (parseFloat(priceInput.value)||0).toFixed(2) + ' ر.س';
+        form.onsubmit = e => { e.preventDefault(); const t = document.getElementById('toast'); t.classList.remove('hidden'); requestAnimationFrame(()=>t.classList.add('show')); setTimeout(()=>{t.classList.remove('show'); setTimeout(()=>t.classList.add('hidden'),400); form.reset(); previewImg.src="https://placehold.co/400x400/e2e8f0/94a3b8?text=صورة+المنتج"; previewName.textContent='اسم المنتج'; previewPrice.textContent='0.00 ر.س'; }, 2500); };
+    });
+    </script>
 </body>
 </html>
