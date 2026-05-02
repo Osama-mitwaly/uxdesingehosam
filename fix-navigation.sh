@@ -1,3 +1,16 @@
+#!/bin/bash
+# =================================================================
+# سكربت تصحيح رابط "إضافة منتج" في merchant-store-mgmt.html
+# =================================================================
+
+echo "🔧 جاري إصلاح صفحة إدارة المتجر..."
+
+if [ ! -f "merchant-store-mgmt.html" ]; then
+    echo "❌ الملف غير موجود في المجلد الحالي. يرجى تشغيل السكربت داخل مجلد المشروع."
+    exit 1
+fi
+
+cat << 'EOF' > merchant-store-mgmt.html
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -37,3 +50,8 @@
     <script src="app.js"></script>
 </body>
 </html>
+EOF
+
+echo "✅ تم إصلاح الرابط بنجاح!"
+echo "📂 تم تحديث: merchant-store-mgmt.html"
+echo "💡 اضغط Ctrl+Shift+R (أو Cmd+Shift+R على Mac) لتحديث المتصفح إجبارياً وتفعيل التغيير."
