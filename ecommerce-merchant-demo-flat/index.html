@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تسجيل الدخول | منصة التجارة</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="login-page">
+    <div class="login-container">
+        <div class="login-header">
+            <i class="bi bi-shop"></i>
+            <h1>مرحباً بك</h1>
+            <p>سجل الدخول للمتابعة</p>
+        </div>
+        <form id="loginForm" class="login-form">
+            <div class="form-group">
+                <label for="emailPhone">البريد الإلكتروني أو رقم الهاتف</label>
+                <div class="input-wrapper">
+                    <i class="bi bi-person"></i>
+                    <input type="text" id="emailPhone" placeholder="example@email.com أو 05xxxxxxxx" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="password">كلمة المرور</label>
+                <div class="input-wrapper">
+                    <i class="bi bi-lock"></i>
+                    <input type="password" id="password" placeholder="••••••••" required>
+                </div>
+            </div>
+            <div class="form-group radio-group">
+                <label class="radio-label">
+                    <input type="radio" name="accountType" value="client" id="clientRadio">
+                    <span>حساب عميل</span>
+                    <i class="bi bi-person-check"></i>
+                </label>
+                <label class="radio-label active">
+                    <input type="radio" name="accountType" value="merchant" id="merchantRadio" checked>
+                    <span>حساب تاجر</span>
+                    <i class="bi bi-shop"></i>
+                </label>
+            </div>
+            <button type="submit" class="btn-primary">
+                <span>تسجيل الدخول</span>
+                <i class="bi bi-arrow-left"></i>
+            </button>
+        </form>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>
