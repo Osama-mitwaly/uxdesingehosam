@@ -1,7 +1,6 @@
+// === Global Helpers & Toast ===
 const $ = s => document.querySelector(s);
 const $$ = s => document.querySelectorAll(s);
-
-// ✅ Toast Fix: explicit span wrapper
 window.toast = (msg, type = 'success') => {
     let c = $('#toastContainer');
     if (!c) { c = document.createElement('div'); c.id = 'toastContainer'; document.body.appendChild(c); }
@@ -9,24 +8,24 @@ window.toast = (msg, type = 'success') => {
     t.className = `toast ${type}`;
     t.innerHTML = `<i class="bi bi-${type === 'success' ? 'check-circle' : type === 'warning' ? 'exclamation-triangle' : 'info-circle'}"></i> <span>${msg}</span>`;
     c.appendChild(t);
-    setTimeout(() => t.remove(), 3000);
+    setTimeout(() => t.remove(), 3200);
 };
 
-// ✅ Modal Fix: safely exposed to window
-window.openModal = id => $(`#${id}`)?.classList.add('active');
-window.closeModal = id => $(`#${id}`)?.classList.remove('active');
-$$('.modal').forEach(m => m.onclick = e => { if (e.target === m) m.classList.remove('active'); });
+window.openModal = id => { const m = $(`#${id}`); if (m) m.classList.add('active'); };
+window.closeModal = id => { const m = $(`#${id}`); if (m) m.classList.remove('active'); };
 
+// === Inventory System ===
 const DB_KEY = 'ecommerce_inventory_v1';
 let db = JSON.parse(localStorage.getItem(DB_KEY)) || null;
 if (!db) {
-    db = { categories: [{id:'c1',name:'إلكترونيات'},{id:'c2',name:'ملابس'}], products: [] };
+    db = { categories: [{id:'c1',name:'إلكترونيات'},{id:'c2',name:'ملابس'},{id:'c3',name:'أدوات منزلية'}], products: [] };
     localStorage.setItem(DB_KEY, JSON.stringify(db));
 }
-let state = { activeCat: 'all', selected: new Set(), editingId: null, filters: { type: 'name', q: '', from: null, to: null } };
+let state = { activeCat: 'all', selected: new Set(), editingId: null, filters: { type: 'name', query: '', from: null, to: null } };
+
 const saveDB = () => localStorage.setItem(DB_KEY, JSON.stringify(db));
 
-// === Inventory Logic ===
+// Search & Filter
 window.toggleDateInputs = () => {
     const isDate = $('input[name="searchType"]:checked').value === 'date';
     $('#dateRangeSection').classList.toggle('hidden', !isDate);
@@ -35,18 +34,19 @@ window.toggleDateInputs = () => {
 
 window.applyFilters = () => {
     state.filters.type = $('input[name="searchType"]:checked').value;
-    state.filters.q = $('#searchInput').value.trim().toLowerCase();
+    state.filters.query = $('#searchInput').value.trim().toLowerCase();
     state.filters.from = $('#dateFrom').value ? new Date($('#dateFrom').value) : null;
     state.filters.to = $('#dateTo').value ? new Date($('#dateTo').value) : null;
     renderTable();
 };
-$('#searchInput')?.addEventListener('keyup', e => { if(e.key==='Enter') window.applyFilters(); });
+
 $('#dateFrom, #dateTo')?.addEventListener('change', window.applyFilters);
+$('#searchInput')?.addEventListener('keyup', e => { if(e.key==='Enter') window.applyFilters(); });
 
 function getFilteredProducts() {
     let list = state.activeCat === 'all' ? db.products : db.products.filter(p => p.catId === state.activeCat);
-    if (state.filters.q) {
-        list = list.filter(p => state.filters.type === 'code' ? p.code?.toLowerCase().includes(state.filters.q) : p.name?.toLowerCase().includes(state.filters.q));
+    if (state.filters.query) {
+        list = list.filter(p => state.filters.type === 'code' ? p.code?.toLowerCase().includes(state.filters.query) : p.name?.toLowerCase().includes(state.filters.query));
     }
     if (state.filters.from && state.filters.to) {
         list = list.filter(p => { const d = new Date(p.createdAt); return d >= state.filters.from && d <= state.filters.to; });
@@ -54,8 +54,10 @@ function getFilteredProducts() {
     return list;
 }
 
+// Render Table
 function renderTable() {
-    const tbody = $('#inventoryBody'); if (!tbody) return;
+    const tbody = $('#inventoryBody');
+    if (!tbody) return;
     const filtered = getFilteredProducts();
     tbody.innerHTML = filtered.map(p => {
         const cls = p.stock === 0 ? 'stock-red' : (p.stock <= p.min ? 'stock-orange' : 'stock-green');
@@ -68,15 +70,18 @@ function renderTable() {
             <td data-label="الحد" class="desktop-only"><span class="stock-val ${cls}">${p.stock}/${p.min}</span></td>
             <td data-label="تفعيل" class="desktop-only"><label class="toggle-switch"><input type="checkbox" ${p.active ? 'checked' : ''} onchange="window.toggleProduct('${p.id}')"><span class="slider"></span></label></td>
             <td data-label="إجراءات">
-                <button class="btn-icon" onclick="window.showReport('${p.id}')"><i class="bi bi-bar-chart-line"></i></button>
-                <button class="btn-icon" onclick="window.openEdit('${p.id}')"><i class="bi bi-pencil"></i></button>
-                <button class="btn-icon" onclick="window.deleteSingle('${p.id}')" style="color:var(--red)"><i class="bi bi-trash"></i></button>
+                <button class="btn-icon" onclick="window.showReport('${p.id}')" title="تقرير"><i class="bi bi-bar-chart-line"></i></button>
+                <button class="btn-icon" onclick="window.openEdit('${p.id}')" title="تعديل"><i class="bi bi-pencil"></i></button>
+                <button class="btn-icon" onclick="window.deleteSingle('${p.id}')" title="حذف" style="color:var(--red)"><i class="bi bi-trash"></i></button>
             </td>
         </tr>`;
     }).join('');
 
-    $$('.prod-select').forEach(cb => cb.onchange = e => { e.target.checked ? state.selected.add(cb.dataset.id) : state.selected.delete(cb.dataset.id); updateBar(); });
-    const all = $('#selectAll'); if (all) all.onchange = e => { $$('.prod-select').forEach(cb => { cb.checked = e.target.checked; e.target.checked ? state.selected.add(cb.dataset.id) : state.selected.delete(cb.dataset.id); }); updateBar(); };
+    $$('.prod-select').forEach(cb => {
+        cb.onchange = e => { e.target.checked ? state.selected.add(cb.dataset.id) : state.selected.delete(cb.dataset.id); updateBar(); };
+    });
+    const all = $('#selectAll');
+    if (all) all.onchange = e => { $$('.prod-select').forEach(cb => { cb.checked = e.target.checked; e.target.checked ? state.selected.add(cb.dataset.id) : state.selected.delete(cb.dataset.id); }); updateBar(); };
 }
 
 function renderCats() {
@@ -92,30 +97,13 @@ function updateBar() {
     $('#selectedCount').textContent = `${state.selected.size} عناصر محددة`;
 }
 
-// ✅ Category & Color Picker Fix
-function populateCategories() {
-    const sel = $('#prodCat');
-    if(!sel) return;
-    sel.innerHTML = `<option value="">اختر التصنيف</option>` + db.categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-}
-
-function initColorPicker(targetColor = '#ffffff') {
-    const wrap = $('#colorPickerWrapper'); if(!wrap) return;
-    const colors = ['#ffffff','#f8fafc','#e0f2fe','#dcfce7','#fef3c7','#f3e8ff'];
-    wrap.innerHTML = colors.map(c => `<div class="color-dot ${c===targetColor?'active':''}" style="background:${c}" data-c="${c}"></div>`).join('') +
-    `<input type="color" id="customColorInput" value="${targetColor}">`;
-    wrap.onclick = e => {
-        const dot = e.target.closest('.color-dot');
-        if(dot) { $$(`.color-dot`).forEach(d=>d.classList.remove('active')); dot.classList.add('active'); }
-    };
-    $('#customColorInput')?.oninput = e => { $$(`.color-dot`).forEach(d=>d.classList.remove('active')); };
-}
-
-window.openProductModal = () => {
-    populateCategories();
-    initColorPicker('#ffffff');
-    $('#productModalTitle').textContent = 'إضافة منتج';
-    $('#prodId').value = ''; $('#prodForm').reset(); $('#prodImgPreview').classList.add('hidden');
+// Actions
+window.openEdit = id => {
+    const p = db.products.find(x => x.id === id); if (!p) return;
+    state.editingId = id; $('#productModalTitle').textContent = 'تعديل منتج';
+    $('#prodId').value = p.id; $('#prodName').value = p.name; $('#prodCode').value = p.code;
+    $('#prodPrice').value = p.price; $('#prodStock').value = p.stock; $('#prodMin').value = p.min;
+    $('#prodCat').innerHTML = db.categories.map(c => `<option value="${c.id}" ${c.id === p.catId ? 'selected' : ''}>${c.name}</option>`).join('');
     openModal('productModal');
 };
 
@@ -126,8 +114,7 @@ $('#productForm')?.addEventListener('submit', e => {
         const data = {
             id: state.editingId || 'p' + Date.now(), name: $('#prodName').value, code: $('#prodCode').value,
             price: parseFloat($('#prodPrice').value), stock: parseInt($('#prodStock').value), min: parseInt($('#prodMin').value),
-            catId: $('#prodCat').value, color: $('#customColorInput')?.value || '#ffffff',
-            sold: state.editingId ? db.products.find(p => p.id === state.editingId)?.sold || 0 : 0,
+            catId: $('#prodCat').value, color: '#ffffff', sold: state.editingId ? db.products.find(p => p.id === state.editingId)?.sold || 0 : 0,
             active: true, image: img, createdAt: state.editingId ? db.products.find(p => p.id === state.editingId)?.createdAt : new Date().toISOString()
         };
         if (state.editingId) { const i = db.products.findIndex(p => p.id === state.editingId); db.products[i] = data; }
@@ -138,15 +125,6 @@ $('#productForm')?.addEventListener('submit', e => {
     else handleSave(db.products.find(p => p.id === state.editingId)?.image || '');
 });
 
-window.openEdit = id => {
-    const p = db.products.find(x => x.id === id); if (!p) return;
-    state.editingId = id; $('#productModalTitle').textContent = 'تعديل منتج';
-    $('#prodId').value = p.id; $('#prodName').value = p.name; $('#prodCode').value = p.code;
-    $('#prodPrice').value = p.price; $('#prodStock').value = p.stock; $('#prodMin').value = p.min;
-    populateCategories(); initColorPicker(p.color || '#ffffff');
-    openModal('productModal');
-};
-
 window.toggleProduct = id => { const p = db.products.find(x => x.id === id); p.active = !p.active; saveDB(); renderTable(); toast(p.active ? 'تم التفعيل' : 'تم الإلغاء', 'warning'); };
 window.deleteSingle = id => { if (confirm('حذف نهائي؟')) { db.products = db.products.filter(p => p.id !== id); saveDB(); renderTable(); toast('تم الحذف', 'warning'); } };
 window.clearSelection = () => { state.selected.clear(); $$('.prod-select').forEach(cb => cb.checked = false); if ($('#selectAll')) $('#selectAll').checked = false; updateBar(); };
@@ -154,10 +132,9 @@ window.confirmMultiDelete = () => { $('#delCount').textContent = state.selected.
 window.executeMultiDelete = () => { db.products = db.products.filter(p => !state.selected.has(p.id)); saveDB(); clearSelection(); closeModal('multiDeleteModal'); toast('تم حذف المحدد', 'success'); renderTable(); };
 
 $('#categoryForm')?.addEventListener('submit', e => { e.preventDefault(); db.categories.push({ id: 'c' + Date.now(), name: $('#catName').value }); saveDB(); renderCats(); closeModal('categoryModal'); toast('تم إضافة الصنف'); $('#catName').value = ''; });
-$('#deleteCatForm')?.addEventListener('submit', e => { e.preventDefault(); closeModal('deleteCatModal'); toast('تم حذف التصنيف'); renderCats(); });
+$('#deleteCatForm')?.addEventListener('submit', e => { e.preventDefault(); closeModal('deleteCatModal'); toast('تم الحذف (محاكاة)'); renderCats(); });
 document.querySelectorAll('input[name="catAction"]').forEach(r => r.onchange = e => { if ($('#transferCatGroup')) $('#transferCatGroup').style.display = e.target.value === 'transfer' ? 'block' : 'none'; });
 
-// ✅ Report & Export Fix
 window.showReport = id => {
     const p = db.products.find(x => x.id === id); if (!p) return;
     const left = Math.max(0, p.stock - p.min);
@@ -172,34 +149,52 @@ window.showReport = id => {
     openModal('reportModal');
 };
 
+// Export CSV
 window.exportCSV = () => {
     const filtered = getFilteredProducts();
     if (!filtered.length) return toast('لا توجد بيانات للتصدير', 'warning');
-    const header = '\uFEFFاسم المنتج,الكود,سعر الوحدة,الكمية المتبقية,الكمية المباعة,اجمالى المبيعات,الباقي للحد الادنى\n';
-    const rows = filtered.map(p => {
-        const left = Math.max(0, p.stock - p.min);
-        return `${p.name},${p.code},${p.price},${p.stock},${p.sold},${(p.sold*p.price).toFixed(2)},${left >= 0 ? left : left}`;
-    }).join('\n');
-    const blob = new Blob([header + rows], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a'); link.href = URL.createObjectURL(blob);
-    link.download = `inventory_report_${new Date().toISOString().slice(0,10)}.csv`; link.click();
+    let csv = 'الكود,الاسم,السعر,التصنيف,المخزون,الحد الأدنى,تاريخ الإضافة,المباع,إجمالي المبيعات\n';
+    filtered.forEach(p => {
+        const catName = db.categories.find(c => c.id === p.catId)?.name || 'غير مصنف';
+        csv += `${p.code},${p.name},${p.price},${catName},${p.stock},${p.min},${p.createdAt || '-'},${p.sold},${(p.sold * p.price).toFixed(2)}\n`;
+    });
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `inventory_export_${new Date().toISOString().slice(0,10)}.csv`;
+    link.click();
     toast('تم تصدير الملف بنجاح');
 };
 
+// Import CSV + Images
 window.handleImport = async (input) => {
     const file = input.files[0]; if (!file) return;
     const text = await file.text();
-    const rows = text.split('\n').filter(r => r.trim()).slice(1);
+    const rows = text.split('\n').filter(r => r.trim()).slice(1); // skip header
     if (rows.length > 20) return toast('الحد الأقصى 20 منتج', 'warning');
-    const imgInput = document.createElement('input'); imgInput.type = 'file'; imgInput.accept = 'image/*'; imgInput.multiple = true;
+    
+    // Prompt for images matching order numbers
+    const imgInput = document.createElement('input');
+    imgInput.type = 'file'; imgInput.accept = 'image/*'; imgInput.multiple = true;
     imgInput.onchange = async e => {
-        const imgFiles = Array.from(e.target.files); let added = 0;
+        const imgFiles = Array.from(e.target.files);
+        let added = 0;
         for (const row of rows) {
             const [order, name, price, cat, stock, min] = row.split(',').map(s => s.trim());
             if (!name || !price) continue;
-            const imgFile = imgFiles.find(f => f.name.startsWith(order)); let imgBase = '';
-            if (imgFile) { const r = new FileReader(); imgBase = await new Promise(res => { r.onload = () => res(r.result); r.readAsDataURL(imgFile); }); }
-            db.products.push({ id: 'p' + Date.now() + order, name, code: `IM-${order}`, price: parseFloat(price), stock: parseInt(stock), min: parseInt(min), catId: 'c1', color: '#fff', sold: 0, active: true, image: imgBase, createdAt: new Date().toISOString() });
+            const imgFile = imgFiles.find(f => f.name.startsWith(order));
+            let imgBase = '';
+            if (imgFile) {
+                const r = new FileReader();
+                imgBase = await new Promise(res => { r.onload = () => res(r.result); r.readAsDataURL(imgFile); });
+            }
+            const catObj = db.categories.find(c => c.name === cat);
+            db.products.push({
+                id: 'p' + Date.now() + order, name, code: `IM-${order}`,
+                price: parseFloat(price), stock: parseInt(stock), min: parseInt(min),
+                catId: catObj?.id || 'c1', color: '#ffffff', sold: 0, active: true,
+                image: imgBase, createdAt: new Date().toISOString()
+            });
             added++;
         }
         saveDB(); renderTable(); toast(`تم استيراد ${added} منتج`);
@@ -207,9 +202,13 @@ window.handleImport = async (input) => {
     imgInput.click();
 };
 
-// === Init ===
+// Init
 document.addEventListener('DOMContentLoaded', () => {
-    if (document.body.classList.contains('inventory-page')) { renderCats(); renderTable(); }
+    if (document.body.classList.contains('inventory-page')) {
+        renderCats(); renderTable();
+        // Modal background click close
+        $$('.modal').forEach(m => m.onclick = e => { if (e.target === m) m.classList.remove('active'); });
+    }
     if (document.body.classList.contains('login-page')) {
         $('#loginForm')?.addEventListener('submit', e => {
             e.preventDefault();
@@ -219,6 +218,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     if (document.body.classList.contains('add-product-page')) {
+        // Live preview logic remains here
         const form = $('#productForm');
         if(form) {
             const imgInput = $('#productImage'), nameInput = $('#productName'), priceInput = $('#productPrice');
@@ -226,7 +226,7 @@ document.addEventListener('DOMContentLoaded', () => {
             imgInput.onchange = e => previewImg.src = e.target.files[0] ? URL.createObjectURL(e.target.files[0]) : "https://placehold.co/400x400/e2e8f0/94a3b8?text=صورة+المنتج";
             nameInput.oninput = () => previewName.textContent = nameInput.value || 'اسم المنتج';
             priceInput.oninput = () => previewPrice.textContent = (parseFloat(priceInput.value)||0).toFixed(2) + ' ر.س';
-            form.onsubmit = e => { e.preventDefault(); toast('تم إضافة المنتج بنجاح'); setTimeout(()=>{form.reset(); previewImg.src="https://placehold.co/400x400/e2e8f0/94a3b8?text=صورة+المنتج"; previewName.textContent='اسم المنتج'; previewPrice.textContent='0.00 ر.س';}, 2500); };
+            form.onsubmit = e => { e.preventDefault(); toast('تم إضافة المنتج بنجاح', 'success'); setTimeout(()=>{form.reset(); previewImg.src="https://placehold.co/400x400/e2e8f0/94a3b8?text=صورة+المنتج"; previewName.textContent='اسم المنتج'; previewPrice.textContent='0.00 ر.س';}, 2500); };
         }
     }
 });
